@@ -22,6 +22,30 @@
 * SOFTWARE.
 */
 
-fn main() {
-    println!("Hello, world!");
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use tuber::window::{Window, WindowEvent};
+use tuber::input::keyboard::Key;
+
+use tuber_window_sdl2::SDLWindow;
+
+fn main() -> Result<(), String> {
+    let sdl_context = sdl2::init()?;
+    let sdl_video = sdl_context.video()?;
+    let sdl_event_pump = Rc::new(RefCell::new(sdl_context.event_pump()?));
+
+    let mut window = SDLWindow::new(&sdl_video, sdl_event_pump.clone());
+
+    'main_loop: loop {
+        while let Some(event) = window.poll_event() {
+            match event {
+                WindowEvent::Close |
+                WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
+                _ => {}
+            }
+        }
+    }
+
+    Ok(())
 }
