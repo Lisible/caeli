@@ -28,6 +28,12 @@ use std::cell::RefCell;
 use tuber::window::{Window, WindowEvent};
 use tuber::input::keyboard::Key;
 
+use tuber::graphics::rectangle::Rectangle;
+use tuber::scene::{SceneGraph, SceneNode, NodeValue};
+
+use tuber::graphics::scene_renderer::SceneRenderer;
+use tuber::platform::opengl::scene_renderer::SceneRenderer as GLSceneRenderer;
+
 use tuber_window_sdl2::SDLWindow;
 
 fn main() -> Result<(), String> {
@@ -36,6 +42,11 @@ fn main() -> Result<(), String> {
     let sdl_event_pump = Rc::new(RefCell::new(sdl_context.event_pump()?));
 
     let mut window = SDLWindow::new(&sdl_video, sdl_event_pump.clone());
+    let mut scene_renderer = GLSceneRenderer::new();
+
+    let mut scene = SceneGraph::new();
+    scene.root_mut().add_child(SceneNode::new("a", NodeValue::RectangleNode(
+                Rectangle::new(1.0, 1.0))));
 
     'main_loop: loop {
         while let Some(event) = window.poll_event() {
@@ -44,8 +55,11 @@ fn main() -> Result<(), String> {
                 WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
                 _ => {}
             }
-        }
-    }
+        } 
+        
+        scene_renderer.render_scene(&scene);
+        window.display();
+   }
 
     Ok(())
 }
