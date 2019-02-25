@@ -42,11 +42,19 @@ fn main() -> Result<(), String> {
     let sdl_event_pump = Rc::new(RefCell::new(sdl_context.event_pump()?));
 
     let mut window = SDLWindow::new(&sdl_video, sdl_event_pump.clone());
+    gl::load_with(|s| sdl_video.gl_get_proc_address(s) 
+                  as *const std::os::raw::c_void);
+
     let mut scene_renderer = GLSceneRenderer::new();
 
     let mut scene = SceneGraph::new();
     scene.root_mut().add_child(SceneNode::new("a", NodeValue::RectangleNode(
                 Rectangle::new(1.0, 1.0))));
+
+    unsafe {
+        gl::Viewport(0, 0, 800, 600);
+        gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+    }
 
     'main_loop: loop {
         while let Some(event) = window.poll_event() {
@@ -56,7 +64,11 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         } 
-        
+   
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+
         scene_renderer.render_scene(&scene);
         window.display();
    }
