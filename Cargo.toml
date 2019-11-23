@@ -4,14 +4,5 @@ version = "0.1.0"
 authors = ["Clément Sibille <clement.sibille@protonmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-tuber_scene_renderer = { git = "https://github.com/tuber-engine/tuber_scene_renderer.git", branch = "basic-scene-renderer" }
-tuber_scene = { git = "https://github.com/tuber-engine/tuber_scene.git", branch = "ambient_lighting" }
-tuber_graphics = { git = "https://github.com/tuber-engine/tuber_graphics.git", branch = "dev" }
-tuber_graphics_opengl = { git = "https://github.com/tuber-engine/tuber_graphics_opengl.git", branch = "basic-api" }
-tuber_window = { git = "https://github.com/tuber-engine/tuber_window.git" }
-tuber_window_sdl2 = { git = "https://github.com/tuber-engine/tuber_window_sdl2.git" }
-nalgebra-glm = "0.3.0"
-env_logger = "0.6.1"
+tuber = { git = "https://github.com/tuber-engine/tuber.git", features = ["window", "sdl_window"]}
