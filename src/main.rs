@@ -24,13 +24,23 @@
 
 use tuber::window::{Window, WindowEvent};
 use tuber::platform::sdl2::{SDLWindow, SDLContext};
+
+use gl;
+
 use caeli::Track;
+use caeli::graphics::Renderer;
 
 fn main() {
     let context = SDLContext::new().unwrap();
     let mut window = SDLWindow::new(&context, "Cæli", 800, 600).unwrap();
+    gl::load_with(|s| {
+        context.video_subsystem().gl_get_proc_address(s) as *const std::ffi::c_void 
+    });
+
     
-    let _track = Track::new(4);
+    let track = Track::new(4);
+    let renderer = Renderer{};
+    renderer.set_clear_color(1.0, 0.0, 0.0);
     
     'main_loop: loop {
         while let Some(event) = window.poll_event() {
@@ -40,6 +50,9 @@ fn main() {
             }
         }
 
+        renderer.clear();
+        renderer.draw_rectangle(0.0, 0.0, 800.0, 600.0);
+        renderer.render();
         window.display();
     }
 }

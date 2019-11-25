@@ -22,23 +22,24 @@
 * SOFTWARE.
 */
 
-pub mod graphics;
+use gl;
 
-pub struct Track {
-    section_count: usize
-}
+pub struct Renderer;
 
-impl Track {
-    pub fn new(section_count: usize) -> Track {
-        Track {
-            section_count
-        }
+impl Renderer {
+    pub fn draw_rectangle(&self, x: f32, y: f32, width: f32, height: f32) {
+
     }
 
-    pub fn section_count(&self) -> usize {
-       self.section_count 
+    pub fn clear(&self) {
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
+    }
+
+    pub fn render(&self) {
+
+    }
+
+    pub fn set_clear_color(&self, red: f32, green: f32, blue: f32) {
+        unsafe { gl::ClearColor(red, green, blue, 1.0); }
     }
 }
-
-
-
