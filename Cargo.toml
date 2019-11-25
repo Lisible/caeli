@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 tuber = { git = "https://github.com/tuber-engine/tuber.git", features = ["window", "sdl_window"]}
+gl = "0.11.0"
