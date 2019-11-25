@@ -36,12 +36,11 @@ fn main() {
     gl::load_with(|s| {
         context.video_subsystem().gl_get_proc_address(s) as *const std::ffi::c_void 
     });
-
     
     let track = Track::new(4);
-    let renderer = Renderer{};
+    let mut renderer = Renderer::new();
     renderer.set_clear_color(1.0, 0.0, 0.0);
-    
+
     'main_loop: loop {
         while let Some(event) = window.poll_event() {
             match event {
@@ -51,7 +50,7 @@ fn main() {
         }
 
         renderer.clear();
-        renderer.draw_rectangle(0.0, 0.0, 800.0, 600.0);
+        renderer.draw_rectangle(0.0, 0.0, 0.25, 0.5, (0.5, 1.0, 0.0));
         renderer.render();
         window.display();
     }
