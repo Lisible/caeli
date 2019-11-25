@@ -210,7 +210,7 @@ impl Renderer {
                     RenderMode::Line => gl::LINES
                 };
 
-                gl::DrawArrays(draw_mode, 0, command.vertices.len() as gl::types::GLsizei);
+                gl::DrawArrays(draw_mode, 0, (command.vertices.len() / 6) as gl::types::GLsizei);
                 gl::BindVertexArray(0);
             }
         }
