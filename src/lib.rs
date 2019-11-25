@@ -22,24 +22,19 @@
 * SOFTWARE.
 */
 
-use tuber::window::{Window, WindowEvent};
-use tuber::platform::sdl2::{SDLWindow, SDLContext};
-use caeli::Track;
+pub struct Track {
+    section_count: usize
+}
 
-fn main() {
-    let context = SDLContext::new().unwrap();
-    let mut window = SDLWindow::new(&context, "Cæli", 800, 600).unwrap();
-    
-    let _track = Track::new(4);
-    
-    'main_loop: loop {
-        while let Some(event) = window.poll_event() {
-            match event {
-                WindowEvent::Close => break 'main_loop,
-                _ => {}
-            }
+impl Track {
+    pub fn new(section_count: usize) -> Track {
+        Track {
+            section_count
         }
+    }
 
-        window.display();
+    pub fn section_count(&self) -> usize {
+       self.section_count 
     }
 }
+
