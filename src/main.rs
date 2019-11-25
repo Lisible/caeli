@@ -51,6 +51,7 @@ fn main() {
 
         renderer.clear();
         renderer.draw_rectangle(0.0, 0.0, 0.25, 0.5, (0.5, 1.0, 0.0));
+        renderer.draw_line((-1.0, -1.0), (1.0, 1.0), (0.0, 0.0, 0.0));
         renderer.render();
         window.display();
     }

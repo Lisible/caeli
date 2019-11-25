@@ -172,7 +172,21 @@ impl Renderer {
         ];
 
         self.pending_commands.push(RenderCommand {
-            vertices: vertices.to_vec()
+            vertices: vertices.to_vec(),
+            mode: RenderMode::Triangle
+        });
+    }
+
+    pub fn draw_line(&mut self, first_point: (f32, f32), second_point: (f32, f32), 
+        color: (f32, f32, f32)) {
+        let vertices = [
+            first_point.0, first_point.1, 0.0, color.0, color.1, color.2,
+            second_point.0, second_point.1, 0.0, color.0, color.1, color.2
+        ];
+
+        self.pending_commands.push(RenderCommand {
+            vertices: vertices.to_vec(),
+            mode: RenderMode::Line
         });
     }
 
@@ -181,7 +195,7 @@ impl Renderer {
             unsafe {
                 gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
                 gl::BufferSubData(gl::ARRAY_BUFFER,
-                    0,
+                    0 as gl::types::GLintptr,
                     (command.vertices.len() * std::mem::size_of::<f32>() * 6) as gl::types::GLsizeiptr,
                     command.vertices.as_ptr() as *const gl::types::GLvoid);
                 gl::BindBuffer(gl::ARRAY_BUFFER, 0);
@@ -190,8 +204,13 @@ impl Renderer {
                 gl::UseProgram(self.shader_program);
 
                 gl::BindVertexArray(self.vao);
-                gl::DrawArrays(gl::TRIANGLES, 0, (command.vertices.len() as gl::types::GLsizeiptr)
-                    .try_into().unwrap());
+
+                let draw_mode = match command.mode {
+                    RenderMode::Triangle => gl::TRIANGLES,
+                    RenderMode::Line => gl::LINES
+                };
+
+                gl::DrawArrays(draw_mode, 0, command.vertices.len() as gl::types::GLsizei);
                 gl::BindVertexArray(0);
             }
         }
@@ -209,5 +228,11 @@ impl Renderer {
 }
 
 struct RenderCommand {
-    pub vertices: Vec<f32>
+    pub vertices: Vec<f32>,
+    pub mode: RenderMode
+}
+
+enum RenderMode {
+    Triangle,
+    Line
 }
