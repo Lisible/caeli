@@ -50,9 +50,20 @@ fn main() {
         }
 
         renderer.clear();
-        renderer.draw_rectangle(0.0, 0.0, 0.25, 0.5, (1.0, 1.0, 0.0));
-        renderer.draw_line((-1.0, -1.0), (1.0, 1.0), (0.0, 0.0, 0.0));
+        render_track(&track, &mut renderer);
         renderer.render();
         window.display();
+    }
+}
+
+fn render_track(track: &Track, renderer: &mut Renderer) {
+    renderer.draw_rectangle(-1.0, -1.0, 2.0, 2.0, (0.2, 0.2, 0.2));
+    let x_offset = 2.0 / track.section_count() as f32;
+
+    for i in 1..track.section_count() {
+        renderer.draw_line(
+            (-1.0 + x_offset*i as f32, -1.0), 
+            (-1.0 + x_offset*i as f32, 1.0), 
+            (1.0, 1.0, 1.0));
     }
 }
