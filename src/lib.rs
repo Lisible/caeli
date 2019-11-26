@@ -62,5 +62,37 @@ impl Track {
     }
 }
 
+pub struct Note {
+    begin_section: usize,
+    width: usize,
+    position: f32
+}
+
+impl Note {
+    pub fn new(begin_section: usize, width: usize, initial_position: f32) -> Note {
+        Note {
+            begin_section,
+            width,
+            position: initial_position
+        }
+    }
+
+    pub fn set_position(&mut self, position: f32) {
+        self.position = position;
+    }
+    pub fn position(&self) -> f32 {
+        self.position
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn begin_section(&self) -> usize {
+        self.begin_section
+    }
+
+}
+
 
 

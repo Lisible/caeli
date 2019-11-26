@@ -27,7 +27,7 @@ use tuber::platform::sdl2::{SDLWindow, SDLContext};
 
 use gl;
 
-use caeli::Track;
+use caeli::{Track, Note};
 use caeli::graphics::Renderer;
 
 fn main() {
@@ -37,7 +37,10 @@ fn main() {
         context.video_subsystem().gl_get_proc_address(s) as *const std::ffi::c_void 
     });
     
+    const TRACK_SPEED : f32 = 0.00005;
     let mut track = Track::new(9);
+    let mut notes = vec![Note::new(0, 1, 1.0), Note::new(2, 2, 3.0), Note::new(4, 1, 1.5)];
+
     let mut renderer = Renderer::new();
     renderer.set_clear_color(1.0, 0.0, 0.0);
 
@@ -45,16 +48,16 @@ fn main() {
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close => break 'main_loop,
-                WindowEvent::KeyDown(Key::A) => track.activate_section(0),
-                WindowEvent::KeyDown(Key::Z) => track.activate_section(1),
-                WindowEvent::KeyDown(Key::E) => track.activate_section(2),
-                WindowEvent::KeyDown(Key::R) => track.activate_section(3),
-                WindowEvent::KeyDown(Key::T) => track.activate_section(4),
-                WindowEvent::KeyDown(Key::Y) => track.activate_section(5),
-                WindowEvent::KeyDown(Key::U) => track.activate_section(6),
-                WindowEvent::KeyDown(Key::I) => track.activate_section(7),
-                WindowEvent::KeyDown(Key::O) => track.activate_section(8),
-                WindowEvent::KeyDown(Key::P) => track.activate_section(9),
+                WindowEvent::KeyDown(Key::A) => activate_track_section(&mut track, &mut notes, 0),
+                WindowEvent::KeyDown(Key::Z) => activate_track_section(&mut track, &mut notes, 1),
+                WindowEvent::KeyDown(Key::E) => activate_track_section(&mut track, &mut notes, 2),
+                WindowEvent::KeyDown(Key::R) => activate_track_section(&mut track, &mut notes, 3),
+                WindowEvent::KeyDown(Key::T) => activate_track_section(&mut track, &mut notes, 4),
+                WindowEvent::KeyDown(Key::Y) => activate_track_section(&mut track, &mut notes, 5),
+                WindowEvent::KeyDown(Key::U) => activate_track_section(&mut track, &mut notes, 6),
+                WindowEvent::KeyDown(Key::I) => activate_track_section(&mut track, &mut notes, 7),
+                WindowEvent::KeyDown(Key::O) => activate_track_section(&mut track, &mut notes, 8),
+                WindowEvent::KeyDown(Key::P) => activate_track_section(&mut track, &mut notes, 9),
                 WindowEvent::KeyUp(Key::A) => track.deactivate_section(0),
                 WindowEvent::KeyUp(Key::Z) => track.deactivate_section(1),
                 WindowEvent::KeyUp(Key::E) => track.deactivate_section(2),
@@ -69,9 +72,18 @@ fn main() {
             }
         }
 
+        for note in notes.iter_mut() {
+            note.set_position(note.position() - TRACK_SPEED);
+        }
+
         renderer.clear();
         render_track(&track, &mut renderer);
+        for note in notes.iter() {
+            render_note(&note, track.section_count(), &mut renderer);
+        }
+        render_base_line(&mut renderer);
         renderer.render();
+
         window.display();
     }
 }
@@ -93,4 +105,28 @@ fn render_track(track: &Track, renderer: &mut Renderer) {
             (1.0, 1.0, 1.0)
         );
     }
+}
+
+fn render_note(note: &Note, section_count: usize, renderer: &mut Renderer) {
+    let x_offset = SCREEN_WIDTH / section_count as f32;
+    renderer.draw_rectangle(SCREEN_ORIGIN_X + x_offset * note.begin_section() as f32, SCREEN_ORIGIN_Y + note.position(), note.width() as f32 * x_offset, 0.1, (1.0, 0.0, 0.0));
+}
+
+pub fn activate_track_section(track: &mut Track, notes: &mut Vec<Note>, section: usize) {
+   track.activate_section(section); 
+
+    println!("{}", notes.get(0).unwrap().position());
+   for note in notes.iter() {
+        if section >= note.begin_section() && section < note.begin_section() + note.width() && note.position() + SCREEN_ORIGIN_Y <= -0.8 && note.position() + SCREEN_ORIGIN_Y >= -0.9{
+            println!("NOTE DETECTED !!");
+        }
+   }
+}
+
+pub fn render_base_line(renderer: &mut Renderer) {
+    renderer.draw_line(
+        (SCREEN_ORIGIN_X, -0.8),
+        (SCREEN_ORIGIN_X + SCREEN_WIDTH, -0.8),
+        (1.0, 1.0, 0.0)
+    );
 }
