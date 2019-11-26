@@ -22,7 +22,6 @@
 * SOFTWARE.
 */
 
-use std::convert::TryInto;
 use std::ffi::CString;
 
 use gl;

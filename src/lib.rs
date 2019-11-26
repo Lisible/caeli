@@ -25,18 +25,40 @@
 pub mod graphics;
 
 pub struct Track {
-    section_count: usize
+    section_count: usize,
+    sections_states: Vec<bool>
 }
 
 impl Track {
     pub fn new(section_count: usize) -> Track {
         Track {
-            section_count
+            section_count,
+            sections_states: vec![false; section_count]
         }
     }
 
     pub fn section_count(&self) -> usize {
        self.section_count 
+    }
+
+    pub fn activate_section(&mut self, section: usize) {
+        if section >= self.section_count { 
+            return;
+        }
+
+        self.sections_states[section] = true; 
+    }
+
+    pub fn deactivate_section(&mut self, section: usize) {
+        if section >= self.section_count {
+            return;
+        }
+
+        self.sections_states[section] = false;
+    }
+
+    pub fn is_activated(&self, section: usize) -> bool {
+        self.sections_states[section]
     }
 }
 
