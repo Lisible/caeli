@@ -22,7 +22,7 @@
 * SOFTWARE.
 */
 
-use tuber::window::{Window, WindowEvent};
+use tuber::window::{Window, WindowEvent, input::keyboard::Key};
 use tuber::platform::sdl2::{SDLWindow, SDLContext};
 
 use gl;
@@ -37,7 +37,7 @@ fn main() {
         context.video_subsystem().gl_get_proc_address(s) as *const std::ffi::c_void 
     });
     
-    let track = Track::new(4);
+    let mut track = Track::new(9);
     let mut renderer = Renderer::new();
     renderer.set_clear_color(1.0, 0.0, 0.0);
 
@@ -45,6 +45,26 @@ fn main() {
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close => break 'main_loop,
+                WindowEvent::KeyDown(Key::A) => track.activate_section(0),
+                WindowEvent::KeyDown(Key::Z) => track.activate_section(1),
+                WindowEvent::KeyDown(Key::E) => track.activate_section(2),
+                WindowEvent::KeyDown(Key::R) => track.activate_section(3),
+                WindowEvent::KeyDown(Key::T) => track.activate_section(4),
+                WindowEvent::KeyDown(Key::Y) => track.activate_section(5),
+                WindowEvent::KeyDown(Key::U) => track.activate_section(6),
+                WindowEvent::KeyDown(Key::I) => track.activate_section(7),
+                WindowEvent::KeyDown(Key::O) => track.activate_section(8),
+                WindowEvent::KeyDown(Key::P) => track.activate_section(9),
+                WindowEvent::KeyUp(Key::A) => track.deactivate_section(0),
+                WindowEvent::KeyUp(Key::Z) => track.deactivate_section(1),
+                WindowEvent::KeyUp(Key::E) => track.deactivate_section(2),
+                WindowEvent::KeyUp(Key::R) => track.deactivate_section(3),
+                WindowEvent::KeyUp(Key::T) => track.deactivate_section(4),
+                WindowEvent::KeyUp(Key::Y) => track.deactivate_section(5),
+                WindowEvent::KeyUp(Key::U) => track.deactivate_section(6),
+                WindowEvent::KeyUp(Key::I) => track.deactivate_section(7),
+                WindowEvent::KeyUp(Key::O) => track.deactivate_section(8),
+                WindowEvent::KeyUp(Key::P) => track.deactivate_section(9),
                 _ => {}
             }
         }
@@ -56,14 +76,21 @@ fn main() {
     }
 }
 
-fn render_track(track: &Track, renderer: &mut Renderer) {
-    renderer.draw_rectangle(-1.0, -1.0, 2.0, 2.0, (0.2, 0.2, 0.2));
-    let x_offset = 2.0 / track.section_count() as f32;
+const SCREEN_WIDTH : f32 = 2.0;
+const SCREEN_HEIGHT : f32 = 2.0;
+const SCREEN_ORIGIN_X : f32 = -1.0;
+const SCREEN_ORIGIN_Y : f32 = -1.0;
 
-    for i in 1..track.section_count() {
+fn render_track(track: &Track, renderer: &mut Renderer) {
+    let x_offset = SCREEN_WIDTH / track.section_count() as f32;
+
+    for i in 0..track.section_count() {
+        let color = if track.is_activated(i) {(0.5, 0.5, 0.5)} else {(0.2, 0.2, 0.2)};
+        renderer.draw_rectangle(SCREEN_ORIGIN_X + x_offset*i as f32, SCREEN_ORIGIN_Y, x_offset, SCREEN_HEIGHT, color);
         renderer.draw_line(
-            (-1.0 + x_offset*i as f32, -1.0), 
-            (-1.0 + x_offset*i as f32, 1.0), 
-            (1.0, 1.0, 1.0));
+            (SCREEN_ORIGIN_X + x_offset*i as f32, SCREEN_ORIGIN_Y),
+            (SCREEN_ORIGIN_X + x_offset*i as f32, SCREEN_ORIGIN_Y + SCREEN_HEIGHT),
+            (1.0, 1.0, 1.0)
+        );
     }
 }
