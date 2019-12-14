@@ -22,8 +22,6 @@
 * SOFTWARE.
 */
 
-pub mod graphics;
-
 pub struct Track {
     section_count: usize,
     sections_states: Vec<bool>

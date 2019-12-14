@@ -1,7 +1,7 @@
 /*
 * MIT License
 *
-* Copyright (c) 2019 Caeli team
+* Copyright (c) 2019 Tuber team
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,110 +23,162 @@
 */
 
 use tuber::window::{Window, WindowEvent, input::keyboard::Key};
-use tuber::platform::sdl2::{SDLWindow, SDLContext};
+use tuber::platform::sdl2::{SDLContext, SDLWindow};
 
-use gl;
+use tuber::graphics::{GraphicsAPI, Mesh, Material};
+use tuber::platform::opengl::GLGraphicsAPI;
 
-use caeli::{Track, Note};
-use caeli::graphics::Renderer;
+use tuber::scene::*;
+use tuber::graphics::scene_renderer::*;
+
+use nalgebra_glm as glm;
 
 fn main() {
-    let context = SDLContext::new().unwrap();
-    let mut window = SDLWindow::new(&context, "Cæli", 800, 600).unwrap();
-    gl::load_with(|s| {
-        context.video_subsystem().gl_get_proc_address(s) as *const std::ffi::c_void 
-    });
-    
-    const TRACK_SPEED : f32 = 0.00005;
-    let mut track = Track::new(9);
-    let mut notes = vec![Note::new(0, 1, 1.0), Note::new(2, 2, 3.0), Note::new(4, 1, 1.5)];
+    env_logger::init();
 
-    let mut renderer = Renderer::new();
-    renderer.set_clear_color(1.0, 0.0, 0.0);
+    let context = SDLContext::new().unwrap();
+    let mut window = SDLWindow::new(&context, "Bonjour", 800, 600).unwrap();
+    tuber::platform::opengl::load_functions(|s| {
+        context.video_subsystem().gl_get_proc_address(s) as *const std::os::raw::c_void
+    });
+
+    let mut graphics = GLGraphicsAPI::new();
+    graphics.set_clear_color((0.58, 0.73, 0.98));
+
+    let mut scene = Scene::new();
+
+    let mut camera = SceneNode::new(
+        "camera",
+        NodeValue::CameraNode(Camera::perspective(
+                22f32.to_radians(),
+                800.0 / 600.0,
+                0.1,
+                100.0
+        ))
+    );
+    let camera_transform = camera.transform_mut();
+    camera_transform.set_translation(&glm::vec3(0.0, -2.0, 1.0));
+    camera_transform.set_rotation(&glm::vec3(75f32.to_radians(), std::f32::consts::PI, 0.0));
+    scene.set_active_camera("camera");
+
+    let mut track_node = SceneNode::new("track", NodeValue::AbstractNode);
+    const LANE_MATERIAL: Material = Material {
+        diffuse: (0.0, 0.0, 0.0),
+        specular: (0.0, 0.0, 0.0),
+        shininess: 32.0,
+        texture: None
+    };
+
+    let lane_count = 6;
+    let horizontal_scale = 1.0 / lane_count as f32;
+    for i in 0..lane_count {
+        let lane_node_name = format!("lane_{}", i.to_string());
+        let mut lane_node = SceneNode::new(lane_node_name.as_str(), NodeValue::MeshNode(Mesh::new_plane_mesh(LANE_MATERIAL.clone())));
+        let lane_node_transform = lane_node.transform_mut();
+
+        lane_node_transform.set_scale(&glm::vec3(horizontal_scale, 100.0, 1.0));
+        lane_node_transform.set_translation(&glm::vec3(i as f32 * horizontal_scale, 0.0, 0.0));
+        track_node.add_child(lane_node);
+    }
+
+    const NOTE_MATERIAL: Material = Material {
+        diffuse: (1.0, 0.0, 0.0),
+        specular: (1.0, 0.0, 0.0),
+        shininess: 32.0,
+        texture: None
+    };
+
+    let mut notes_node = SceneNode::new("notes", NodeValue::AbstractNode);
+
+    for i in 0..20 {
+        let mut note_node = SceneNode::new(format!("note_{}", i).as_str(), NodeValue::MeshNode(Mesh::new_plane_mesh(NOTE_MATERIAL.clone())));
+        note_node.transform_mut().set_translation(&glm::vec3((i % lane_count) as f32 * horizontal_scale, i as f32, 0.001));
+        note_node.transform_mut().set_scale(&glm::vec3(horizontal_scale, 0.1, 1.0));
+        notes_node.add_child(note_node);
+    }
+    track_node.add_child(notes_node);
+
+    let track_transform = track_node.transform_mut();
+    track_transform.set_translation(&glm::vec3(-horizontal_scale*(lane_count as f32 / 2.0), 0.0, 0.0));
+    track_transform.set_rotation(&glm::vec3(0.0, 0.0, 0.0));
+    track_transform.set_scale(&glm::vec3(1.0, 1.0, 1.0));
+
+    let mut light = tuber::scene::lights::PointLight::default();
+    light.set_ambient_color((0.5, 0.5, 0.5));
+    light.set_diffuse_color((0.0, 0.0, 0.0));
+    light.set_specular_color((0.0, 0.0, 0.0));
+    light.set_attenuation((1.0, 0.014, 0.00007));
+
+    let mut light_node = SceneNode::new("light", NodeValue::PointLightNode(light));
+    light_node.transform_mut().set_translation(&glm::vec3(0.0, 0.0, 5.0));
+
+    scene.graph_mut().root_mut().add_child(light_node);
+    scene.graph_mut().root_mut().add_child(camera);
+    scene.graph_mut().root_mut().add_child(track_node);
+
+
+    let mut scene_renderer = SceneRenderer::new(Box::new(graphics));
 
     'main_loop: loop {
         while let Some(event) = window.poll_event() {
             match event {
-                WindowEvent::Close => break 'main_loop,
-                WindowEvent::KeyDown(Key::A) => activate_track_section(&mut track, &mut notes, 0),
-                WindowEvent::KeyDown(Key::Z) => activate_track_section(&mut track, &mut notes, 1),
-                WindowEvent::KeyDown(Key::E) => activate_track_section(&mut track, &mut notes, 2),
-                WindowEvent::KeyDown(Key::R) => activate_track_section(&mut track, &mut notes, 3),
-                WindowEvent::KeyDown(Key::T) => activate_track_section(&mut track, &mut notes, 4),
-                WindowEvent::KeyDown(Key::Y) => activate_track_section(&mut track, &mut notes, 5),
-                WindowEvent::KeyDown(Key::U) => activate_track_section(&mut track, &mut notes, 6),
-                WindowEvent::KeyDown(Key::I) => activate_track_section(&mut track, &mut notes, 7),
-                WindowEvent::KeyDown(Key::O) => activate_track_section(&mut track, &mut notes, 8),
-                WindowEvent::KeyDown(Key::P) => activate_track_section(&mut track, &mut notes, 9),
-                WindowEvent::KeyUp(Key::A) => track.deactivate_section(0),
-                WindowEvent::KeyUp(Key::Z) => track.deactivate_section(1),
-                WindowEvent::KeyUp(Key::E) => track.deactivate_section(2),
-                WindowEvent::KeyUp(Key::R) => track.deactivate_section(3),
-                WindowEvent::KeyUp(Key::T) => track.deactivate_section(4),
-                WindowEvent::KeyUp(Key::Y) => track.deactivate_section(5),
-                WindowEvent::KeyUp(Key::U) => track.deactivate_section(6),
-                WindowEvent::KeyUp(Key::I) => track.deactivate_section(7),
-                WindowEvent::KeyUp(Key::O) => track.deactivate_section(8),
-                WindowEvent::KeyUp(Key::P) => track.deactivate_section(9),
+                WindowEvent::Close | WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
+                WindowEvent::KeyDown(Key::A) => activate_lane("lane_0", &mut scene),
+                WindowEvent::KeyDown(Key::Z) => activate_lane("lane_1", &mut scene),
+                WindowEvent::KeyDown(Key::E) => activate_lane("lane_2", &mut scene),
+                WindowEvent::KeyDown(Key::R) => activate_lane("lane_3", &mut scene),
+                WindowEvent::KeyDown(Key::T) => activate_lane("lane_4", &mut scene),
+                WindowEvent::KeyDown(Key::Y) => activate_lane("lane_5", &mut scene),
+                WindowEvent::KeyDown(Key::U) => activate_lane("lane_6", &mut scene),
+                WindowEvent::KeyDown(Key::I) => activate_lane("lane_7", &mut scene),
+                WindowEvent::KeyDown(Key::O) => activate_lane("lane_8", &mut scene),
+                WindowEvent::KeyDown(Key::P) => activate_lane("lane_9", &mut scene),
+                WindowEvent::KeyUp(Key::A) => deactivate_lane("lane_0", &mut scene),
+                WindowEvent::KeyUp(Key::Z) => deactivate_lane("lane_1", &mut scene),
+                WindowEvent::KeyUp(Key::E) => deactivate_lane("lane_2", &mut scene),
+                WindowEvent::KeyUp(Key::R) => deactivate_lane("lane_3", &mut scene),
+                WindowEvent::KeyUp(Key::T) => deactivate_lane("lane_4", &mut scene),
+                WindowEvent::KeyUp(Key::Y) => deactivate_lane("lane_5", &mut scene),
+                WindowEvent::KeyUp(Key::U) => deactivate_lane("lane_6", &mut scene),
+                WindowEvent::KeyUp(Key::I) => deactivate_lane("lane_7", &mut scene),
+                WindowEvent::KeyUp(Key::O) => deactivate_lane("lane_8", &mut scene),
+                WindowEvent::KeyUp(Key::P) => deactivate_lane("lane_9", &mut scene),
                 _ => {}
             }
         }
 
-        for note in notes.iter_mut() {
-            note.set_position(note.position() - TRACK_SPEED);
+        let notes_node = scene.graph_mut().root_mut().find_mut("notes").unwrap();
+        notes_node.transform_mut().translate(&glm::vec3(0.0, -0.005, 0.0));
+
+        let mut notes_to_remove = vec!();
+        let y = notes_node.transform().translation().y;
+        for (index, note) in notes_node.children_mut().iter().enumerate() {
+            if y + note.transform().translation().y < 0.0 {
+                notes_to_remove.push(index);
+            }
         }
 
-        renderer.clear();
-        render_track(&track, &mut renderer);
-        for note in notes.iter() {
-            render_note(&note, track.section_count(), &mut renderer);
+        for index in notes_to_remove {
+            notes_node.remove_child(index);
         }
-        render_base_line(&mut renderer);
-        renderer.render();
 
+
+
+        scene_renderer.render_scene(&scene);
         window.display();
     }
 }
 
-const SCREEN_WIDTH : f32 = 2.0;
-const SCREEN_HEIGHT : f32 = 2.0;
-const SCREEN_ORIGIN_X : f32 = -1.0;
-const SCREEN_ORIGIN_Y : f32 = -1.0;
-
-fn render_track(track: &Track, renderer: &mut Renderer) {
-    let x_offset = SCREEN_WIDTH / track.section_count() as f32;
-
-    for i in 0..track.section_count() {
-        let color = if track.is_activated(i) {(0.5, 0.5, 0.5)} else {(0.2, 0.2, 0.2)};
-        renderer.draw_rectangle(SCREEN_ORIGIN_X + x_offset*i as f32, SCREEN_ORIGIN_Y, x_offset, SCREEN_HEIGHT, color);
-        renderer.draw_line(
-            (SCREEN_ORIGIN_X + x_offset*i as f32, SCREEN_ORIGIN_Y),
-            (SCREEN_ORIGIN_X + x_offset*i as f32, SCREEN_ORIGIN_Y + SCREEN_HEIGHT),
-            (1.0, 1.0, 1.0)
-        );
-    }
-}
-
-fn render_note(note: &Note, section_count: usize, renderer: &mut Renderer) {
-    let x_offset = SCREEN_WIDTH / section_count as f32;
-    renderer.draw_rectangle(SCREEN_ORIGIN_X + x_offset * note.begin_section() as f32, SCREEN_ORIGIN_Y + note.position(), note.width() as f32 * x_offset, 0.1, (1.0, 0.0, 0.0));
-}
-
-pub fn activate_track_section(track: &mut Track, notes: &mut Vec<Note>, section: usize) {
-   track.activate_section(section); 
-
-    println!("{}", notes.get(0).unwrap().position());
-   for note in notes.iter() {
-        if section >= note.begin_section() && section < note.begin_section() + note.width() && note.position() + SCREEN_ORIGIN_Y <= -0.8 && note.position() + SCREEN_ORIGIN_Y >= -0.9{
-            println!("NOTE DETECTED !!");
-        }
+pub fn activate_lane(lane_id: &str, scene: &mut Scene) {
+   let lane_node = scene.graph_mut().root_mut().find_mut(lane_id).unwrap();
+   if let NodeValue::MeshNode(mesh) = lane_node.value_mut() {
+       mesh.material.diffuse = (0.3, 0.3, 0.3);
    }
 }
 
-pub fn render_base_line(renderer: &mut Renderer) {
-    renderer.draw_line(
-        (SCREEN_ORIGIN_X, -0.8),
-        (SCREEN_ORIGIN_X + SCREEN_WIDTH, -0.8),
-        (1.0, 1.0, 0.0)
-    );
+pub fn deactivate_lane(lane_id: &str, scene: &mut Scene) {
+   let lane_node = scene.graph_mut().root_mut().find_mut(lane_id).unwrap();
+   if let NodeValue::MeshNode(mesh) = lane_node.value_mut() {
+       mesh.material.diffuse = (0.0, 0.0, 0.0);
+   }
 }
