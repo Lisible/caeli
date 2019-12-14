@@ -57,7 +57,7 @@ fn main() {
         ))
     );
     let camera_transform = camera.transform_mut();
-    camera_transform.set_translation(&glm::vec3(0.0, -2.0, 1.0));
+    camera_transform.set_translation(&glm::vec3(0.0, -2.0, 2.0));
     camera_transform.set_rotation(&glm::vec3(75f32.to_radians(), std::f32::consts::PI, 0.0));
     scene.set_active_camera("camera");
 
@@ -70,7 +70,7 @@ fn main() {
     };
 
     let lane_count = 6;
-    let horizontal_scale = 1.0 / lane_count as f32;
+    let horizontal_scale = 2.0 / lane_count as f32;
     for i in 0..lane_count {
         let lane_node_name = format!("lane_{}", i.to_string());
         let mut lane_node = SceneNode::new(lane_node_name.as_str(), NodeValue::MeshNode(Mesh::new_plane_mesh(LANE_MATERIAL.clone())));
@@ -81,22 +81,35 @@ fn main() {
         track_node.add_child(lane_node);
     }
 
-    const NOTE_MATERIAL: Material = Material {
-        diffuse: (1.0, 0.0, 0.0),
-        specular: (1.0, 0.0, 0.0),
-        shininess: 32.0,
-        texture: None
+    let note_material: Material = Material {
+        diffuse: (1.0, 1.0, 1.0),
+        specular: (1.0, 1.0, 1.0),
+        shininess: 2048.0,
+        texture: Some("note_texture".to_owned())
     };
 
     let mut notes_node = SceneNode::new("notes", NodeValue::AbstractNode);
 
     for i in 0..20 {
-        let mut note_node = SceneNode::new(format!("note_{}", i).as_str(), NodeValue::MeshNode(Mesh::new_plane_mesh(NOTE_MATERIAL.clone())));
+        let mut note_node = SceneNode::new(format!("note_{}", i).as_str(), NodeValue::MeshNode(Mesh::new_plane_mesh(note_material.clone())));
         note_node.transform_mut().set_translation(&glm::vec3((i % lane_count) as f32 * horizontal_scale, i as f32, 0.001));
-        note_node.transform_mut().set_scale(&glm::vec3(horizontal_scale, 0.1, 1.0));
+        note_node.transform_mut().set_scale(&glm::vec3(horizontal_scale, 0.3, 1.0));
         notes_node.add_child(note_node);
     }
     track_node.add_child(notes_node);
+
+
+    const DETECTION_BAR_MATERIAL: Material = Material {
+        diffuse: (1.0, 1.0, 0.0),
+        specular: (1.0, 1.0, 0.0),
+        shininess: 32.0,
+        texture: None
+    };
+    let mut detection_bar = SceneNode::new("detection_bar", NodeValue::MeshNode(Mesh::new_plane_mesh(DETECTION_BAR_MATERIAL.clone())));
+    detection_bar.transform_mut().set_translation(&glm::vec3(0.0, 2.0, 0.002));
+    detection_bar.transform_mut().set_scale(&glm::vec3(2.0, 0.25, 1.0));
+    track_node.add_child(detection_bar);
+
 
     let track_transform = track_node.transform_mut();
     track_transform.set_translation(&glm::vec3(-horizontal_scale*(lane_count as f32 / 2.0), 0.0, 0.0));
@@ -105,12 +118,12 @@ fn main() {
 
     let mut light = tuber::scene::lights::PointLight::default();
     light.set_ambient_color((0.5, 0.5, 0.5));
-    light.set_diffuse_color((0.0, 0.0, 0.0));
-    light.set_specular_color((0.0, 0.0, 0.0));
-    light.set_attenuation((1.0, 0.014, 0.00007));
+    light.set_diffuse_color((0.7, 0.7, 0.7));
+    light.set_specular_color((0.7, 0.7, 0.7));
+    light.set_attenuation((1.0, 0.0014, 0.000007));
 
     let mut light_node = SceneNode::new("light", NodeValue::PointLightNode(light));
-    light_node.transform_mut().set_translation(&glm::vec3(0.0, 0.0, 5.0));
+    light_node.transform_mut().set_translation(&glm::vec3(0.0, 9.0, 2.0));
 
     scene.graph_mut().root_mut().add_child(light_node);
     scene.graph_mut().root_mut().add_child(camera);
@@ -148,7 +161,7 @@ fn main() {
         }
 
         let notes_node = scene.graph_mut().root_mut().find_mut("notes").unwrap();
-        notes_node.transform_mut().translate(&glm::vec3(0.0, -0.005, 0.0));
+        notes_node.transform_mut().translate(&glm::vec3(0.0, -0.05, 0.0));
 
         let mut notes_to_remove = vec!();
         let y = notes_node.transform().translation().y;
@@ -173,6 +186,17 @@ pub fn activate_lane(lane_id: &str, scene: &mut Scene) {
    let lane_node = scene.graph_mut().root_mut().find_mut(lane_id).unwrap();
    if let NodeValue::MeshNode(mesh) = lane_node.value_mut() {
        mesh.material.diffuse = (0.3, 0.3, 0.3);
+   }
+
+   let notes_node = scene.graph_mut().root_mut().find_mut("notes").unwrap();
+   let current_y = notes_node.transform().translation().y;
+   for (_, node) in notes_node.children_mut().iter().enumerate() {
+       let lane = (node.transform().translation().x / (2.0 / 6.0)).round() as i32;
+       let activated_lane = lane_id.split("_").nth(1).unwrap().parse::<i32>().unwrap();
+       let position_y = current_y + node.transform().translation().y;
+       if position_y > 1.75 && position_y < 2.25 && activated_lane == lane {
+            println!("+1 point");
+       }
    }
 }
 
