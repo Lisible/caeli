@@ -25,11 +25,13 @@
 use tuber::window::{Window, WindowEvent, input::keyboard::Key};
 use tuber::platform::sdl2::{SDLContext, SDLWindow};
 
-use tuber::graphics::{GraphicsAPI, Mesh, Material};
+use tuber::graphics::{GraphicsAPI, Mesh, Material, PointLight};
 use tuber::platform::opengl::GLGraphicsAPI;
 
 use tuber::scene::*;
 use tuber::graphics::scene_renderer::*;
+
+use std::time::{Instant};
 
 use nalgebra_glm as glm;
 
@@ -69,7 +71,7 @@ fn main() {
         texture: None
     };
 
-    let lane_count = 6;
+    let lane_count = 4;
     let horizontal_scale = 2.0 / lane_count as f32;
     for i in 0..lane_count {
         let lane_node_name = format!("lane_{}", i.to_string());
@@ -84,13 +86,13 @@ fn main() {
     let note_material: Material = Material {
         diffuse: (1.0, 1.0, 1.0),
         specular: (1.0, 1.0, 1.0),
-        shininess: 2048.0,
+        shininess: 256.0,
         texture: Some("note_texture".to_owned())
     };
 
     let mut notes_node = SceneNode::new("notes", NodeValue::AbstractNode);
 
-    for i in 0..20 {
+    for i in 0..200 {
         let mut note_node = SceneNode::new(format!("note_{}", i).as_str(), NodeValue::MeshNode(Mesh::new_plane_mesh(note_material.clone())));
         note_node.transform_mut().set_translation(&glm::vec3((i % lane_count) as f32 * horizontal_scale, i as f32, 0.001));
         note_node.transform_mut().set_scale(&glm::vec3(horizontal_scale, 0.3, 1.0));
@@ -106,7 +108,7 @@ fn main() {
         texture: None
     };
     let mut detection_bar = SceneNode::new("detection_bar", NodeValue::MeshNode(Mesh::new_plane_mesh(DETECTION_BAR_MATERIAL.clone())));
-    detection_bar.transform_mut().set_translation(&glm::vec3(0.0, 2.0, 0.002));
+    detection_bar.transform_mut().set_translation(&glm::vec3(0.0, 2.0, 0.0001));
     detection_bar.transform_mut().set_scale(&glm::vec3(2.0, 0.25, 1.0));
     track_node.add_child(detection_bar);
 
@@ -116,11 +118,14 @@ fn main() {
     track_transform.set_rotation(&glm::vec3(0.0, 0.0, 0.0));
     track_transform.set_scale(&glm::vec3(1.0, 1.0, 1.0));
 
-    let mut light = tuber::scene::lights::PointLight::default();
-    light.set_ambient_color((0.5, 0.5, 0.5));
-    light.set_diffuse_color((0.7, 0.7, 0.7));
-    light.set_specular_color((0.7, 0.7, 0.7));
-    light.set_attenuation((1.0, 0.0014, 0.000007));
+    let light = PointLight {
+        ambient: (0.5, 0.5, 0.5),
+        diffuse: (0.7, 0.7, 0.7),
+        specular: (0.7, 0.7, 0.7),
+        constant: 1.0,
+        linear: 0.00014,
+        quadratic: 0.00007
+    };
 
     let mut light_node = SceneNode::new("light", NodeValue::PointLightNode(light));
     light_node.transform_mut().set_translation(&glm::vec3(0.0, 9.0, 2.0));
@@ -131,8 +136,15 @@ fn main() {
 
 
     let mut scene_renderer = SceneRenderer::new(Box::new(graphics));
+    let start_time = Instant::now();
+    let mut frame_count = 0;
+    const FRAMERATE: usize = 60;
+    const TICKS_PER_FRAME: usize = 1000 / FRAMERATE;
 
     'main_loop: loop {
+        let cap_timer = Instant::now();
+        let average_framerate = frame_count as f32 / (start_time.elapsed().as_millis() as f32 / 1000.0);
+
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close | WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
@@ -175,10 +187,16 @@ fn main() {
             notes_node.remove_child(index);
         }
 
-
+        println!("{} fps", average_framerate);
 
         scene_renderer.render_scene(&scene);
+        frame_count += 1;
         window.display();
+
+        let frame_ticks = cap_timer.elapsed().as_millis() as usize;
+        if frame_ticks < TICKS_PER_FRAME {
+            std::thread::sleep(std::time::Duration::from_millis((TICKS_PER_FRAME - frame_ticks) as u64));
+        }
     }
 }
 
