@@ -69,11 +69,7 @@ fn main() {
 
     let mut track = Track::new("track", 8);
     for i in 0..1000 {
-        track.add_note(i*16, 4, 1);
-        track.add_note(i*8, 3, 1);
-        track.add_note(i*4, 2, 1);
-        track.add_note(i*2, 1, 1);
-        track.add_note(i, 0, 1);
+        track.add_note(i*16, 0, 1);
     }
 
     let light_node = create_light();
@@ -84,10 +80,23 @@ fn main() {
 
     let mut scene_renderer = SceneRenderer::new(Box::new(graphics));
 
+    const FRAMERATE: u32 = 60;
+    const TICKS_PER_FRAME: u32 = 1000 / FRAMERATE;
+
     let timestep_timer = Instant::now();
     let mut last_frame_time = timestep_timer.elapsed().as_secs_f32();
+    let fps_timer = Instant::now();
+    let mut counted_frames = 0;
 
     'main_loop: loop {
+        let cap_timer = Instant::now();
+
+        let mut average_fps = counted_frames as f32 / fps_timer.elapsed().as_secs_f32();
+        if average_fps > 2000000.0 {
+            average_fps = 0.0;
+        }
+        println!("framerate: {}", average_fps);
+
         let current_time = timestep_timer.elapsed().as_secs_f32();
         let timestep = current_time - last_frame_time;
         last_frame_time = current_time;
@@ -119,11 +128,17 @@ fn main() {
             }
         }
 
-
-        track.update(0.016 as f32, &mut scene);
+        track.update(timestep, &mut scene);
 
         scene_renderer.render_scene(&scene);
         window.display();
+
+        counted_frames += 1;
+
+        let frame_ticks = cap_timer.elapsed().as_millis();
+        if frame_ticks < TICKS_PER_FRAME as u128 {
+            std::thread::sleep(std::time::Duration::from_millis(TICKS_PER_FRAME as u64 - frame_ticks as u64));
+        }
     }
 }
 

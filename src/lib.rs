@@ -132,7 +132,6 @@ impl Lane {
         }
 
         self.active = true;
-        println!("Lane '{}' activated", self.node_identifier);
     }
 
     pub fn deactivate(&mut self, scene: &mut Scene) {
@@ -174,8 +173,9 @@ impl Notes {
     }
 
     pub fn update(&mut self, delta_time: f32, scene: &mut Scene) {
-        self.current_time += delta_time/2.0;
-        println!("current_time: {}, delta_time: {}", self.current_time*2.0/16.0, delta_time);
+        self.current_time += delta_time;
+
+        println!("current_time: {}", self.current_time);
         scene.graph_mut().root_mut().find_mut("notes").unwrap().transform_mut().set_translation(&glm::vec3(0.0, -self.current_time, 0.005));
     }
 
@@ -217,7 +217,7 @@ impl TapNote {
         let mut note_node = SceneNode::new(node_identifier, 
             NodeValue::MeshNode(Mesh::new_plane_mesh(note_material)));
         note_node.transform_mut().set_scale(&glm::vec3(self.size as f32 * lane_scale, NOTE_VERTICAL_SCALE, 1.0));
-        note_node.transform_mut().set_translation(&glm::vec3(self.lane as f32 * lane_scale, self.milli_second as f32 * NOTE_VERTICAL_SCALE, 0.0));
+        note_node.transform_mut().set_translation(&glm::vec3(self.lane as f32 * lane_scale, (self.milli_second as f32) / 16.0, 0.0));
         note_node
     }
 }
