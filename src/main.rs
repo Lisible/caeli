@@ -68,8 +68,8 @@ fn main() {
 
 
     let mut track = Track::new("track", 8);
-    for i in 0..1000 {
-        track.add_note(i*16, 0, 1);
+    for i in 0..50 {
+        track.add_note(i * 1000, 0, 1);
     }
 
     let light_node = create_light();
@@ -95,7 +95,7 @@ fn main() {
         if average_fps > 2000000.0 {
             average_fps = 0.0;
         }
-        println!("framerate: {}", average_fps);
+        //println!("framerate: {}", average_fps);
 
         let current_time = timestep_timer.elapsed().as_secs_f32();
         let timestep = current_time - last_frame_time;
@@ -104,16 +104,17 @@ fn main() {
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close | WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
-                WindowEvent::KeyDown(Key::A) => track.activate_lane(0, &mut scene),
-                WindowEvent::KeyDown(Key::Z) => track.activate_lane(1, &mut scene),
-                WindowEvent::KeyDown(Key::E) => track.activate_lane(2, &mut scene),
-                WindowEvent::KeyDown(Key::R) => track.activate_lane(3, &mut scene),
-                WindowEvent::KeyDown(Key::T) => track.activate_lane(4, &mut scene),
-                WindowEvent::KeyDown(Key::Y) => track.activate_lane(5, &mut scene),
-                WindowEvent::KeyDown(Key::U) => track.activate_lane(6, &mut scene),
-                WindowEvent::KeyDown(Key::I) => track.activate_lane(7, &mut scene),
-                WindowEvent::KeyDown(Key::O) => track.activate_lane(8, &mut scene),
-                WindowEvent::KeyDown(Key::P) => track.activate_lane(9, &mut scene),
+                //FIXME(quentin) : ugly stuff, may use some kind of global timer instead of passing this to the function
+                WindowEvent::KeyDown(Key::A) => track.activate_lane(0, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::Z) => track.activate_lane(1, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::E) => track.activate_lane(2, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::R) => track.activate_lane(3, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::T) => track.activate_lane(4, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::Y) => track.activate_lane(5, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::U) => track.activate_lane(6, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::I) => track.activate_lane(7, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::O) => track.activate_lane(8, &mut scene, (current_time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::P) => track.activate_lane(9, &mut scene, (current_time * 1000.0) as usize),
                 WindowEvent::KeyUp(Key::A) => track.deactivate_lane(0, &mut scene),
                 WindowEvent::KeyUp(Key::Z) => track.deactivate_lane(1, &mut scene),
                 WindowEvent::KeyUp(Key::E) => track.deactivate_lane(2, &mut scene),

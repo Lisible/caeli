@@ -52,9 +52,10 @@ impl Track {
         self.notes.add_note(milli_second, lane, size);
     }
 
-    pub fn activate_lane(&mut self, lane_number: usize, scene: &mut Scene) {
+    pub fn activate_lane(&mut self, lane_number: usize, scene: &mut Scene, milli:usize) {
         if let Some(lane) = self.lanes.get_mut(lane_number) {
-            lane.activate(scene);
+            println!("input time : {}", milli);
+            lane.activate(scene, self.notes.get_note_lane_milli(milli, lane_number));
         }
     }
 
@@ -106,6 +107,13 @@ const ACTIVE_LANE_MATERIAL: Material = Material {
     texture: None,
 };
 
+const FOUND_NOTE_LANE_MATERIAL: Material = Material {
+    diffuse: (0.5, 1.0, 0.5),
+    specular: (0.5, 1.0, 0.5),
+    shininess: 32.0,
+    texture: None,
+};
+
 const LANE_MATERIAL: Material = Material {
     diffuse: (0.0, 0.0, 0.0),
     specular: (0.8, 0.8, 0.8),
@@ -125,10 +133,10 @@ impl Lane {
         }
     }
 
-    pub fn activate(&mut self, scene: &mut Scene) {
+    pub fn activate(&mut self, scene: &mut Scene, note : bool) {
         let lane_node = scene.graph_mut().root_mut().find_mut(&self.node_identifier).unwrap();
         if let NodeValue::MeshNode(mesh) = lane_node.value_mut() {
-            mesh.material = ACTIVE_LANE_MATERIAL.clone();
+            mesh.material = if note {FOUND_NOTE_LANE_MATERIAL.clone()} else {ACTIVE_LANE_MATERIAL.clone()};
         }
 
         self.active = true;
@@ -139,7 +147,6 @@ impl Lane {
         if let NodeValue::MeshNode(mesh) = lane_node.value_mut() {
             mesh.material = LANE_MATERIAL.clone();
         }
-       
         self.active = false;
         println!("Lane '{}' deactivated", self.node_identifier);
     }
@@ -168,6 +175,11 @@ impl Notes {
         }
     }
 
+    pub fn get_note_lane_milli (&self, milli_second:usize, lane:usize) -> bool {
+        const TOLERANCE_MILLI:usize  = 100;
+        return self.notes.iter().any(|note| note.milli_second/TOLERANCE_MILLI == milli_second/TOLERANCE_MILLI && note.lane == lane);
+    }
+
     pub fn add_note(&mut self, milli_second: usize, size: usize, lane: usize) {
         self.notes.push(TapNote::new(milli_second, size, lane));
     }
@@ -175,7 +187,8 @@ impl Notes {
     pub fn update(&mut self, delta_time: f32, scene: &mut Scene) {
         self.current_time += delta_time;
 
-        println!("current_time: {}", self.current_time);
+        //println!("current_time: {}", self.current_time);
+        // REVIEW(quentin) : Why don't we keep a ref to the scene node instead of doing a search at every update
         scene.graph_mut().root_mut().find_mut("notes").unwrap().transform_mut().set_translation(&glm::vec3(0.0, -self.current_time, 0.005));
     }
 
@@ -214,13 +227,10 @@ impl TapNote {
         };
 
 
-        let mut note_node = SceneNode::new(node_identifier, 
+        let mut note_node = SceneNode::new(node_identifier,
             NodeValue::MeshNode(Mesh::new_plane_mesh(note_material)));
         note_node.transform_mut().set_scale(&glm::vec3(self.size as f32 * lane_scale, NOTE_VERTICAL_SCALE, 1.0));
-        note_node.transform_mut().set_translation(&glm::vec3(self.lane as f32 * lane_scale, (self.milli_second as f32) / 16.0, 0.0));
+        note_node.transform_mut().set_translation(&glm::vec3(self.lane as f32 * lane_scale, (self.milli_second as f32)/1000.0, 0.0));
         note_node
     }
 }
-
-
-
