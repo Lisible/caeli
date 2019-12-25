@@ -40,6 +40,62 @@ use nalgebra_glm as glm;
 
 use caeli::Track;
 
+struct Game {
+    track: Track,
+    score: usize,
+    // song ?
+}
+
+impl Game {
+    pub fn new() -> Game {
+        let mut new_track = Track::new("track", 3);
+        for i in 0..50 {
+            new_track.add_note(i * 1000, 0, 1);
+            //new_track.add_note(i*5, i%3, 1);
+        }
+
+        Game {
+            track: new_track,
+            score: 0,
+        }
+    }
+
+    pub fn handle_input(&mut self, event: WindowEvent, scene : &mut Scene, time:f32){
+            match event {
+                //FIXME(quentin) : ugly stuff, may use some kind of global timer instead of passing this to the function
+                WindowEvent::KeyDown(Key::A) => self.track.activate_lane(0, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::Z) => self.track.activate_lane(1, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::E) => self.track.activate_lane(2, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::R) => self.track.activate_lane(3, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::T) => self.track.activate_lane(4, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::Y) => self.track.activate_lane(5, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::U) => self.track.activate_lane(6, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::I) => self.track.activate_lane(7, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::O) => self.track.activate_lane(8, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::P) => self.track.activate_lane(9, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyUp(Key::A) => self.track.deactivate_lane(0, scene),
+                WindowEvent::KeyUp(Key::Z) => self.track.deactivate_lane(1, scene),
+                WindowEvent::KeyUp(Key::E) => self.track.deactivate_lane(2, scene),
+                WindowEvent::KeyUp(Key::R) => self.track.deactivate_lane(3, scene),
+                WindowEvent::KeyUp(Key::T) => self.track.deactivate_lane(4, scene),
+                WindowEvent::KeyUp(Key::Y) => self.track.deactivate_lane(5, scene),
+                WindowEvent::KeyUp(Key::U) => self.track.deactivate_lane(6, scene),
+                WindowEvent::KeyUp(Key::I) => self.track.deactivate_lane(7, scene),
+                WindowEvent::KeyUp(Key::O) => self.track.deactivate_lane(8, scene),
+                WindowEvent::KeyUp(Key::P) => self.track.deactivate_lane(9, scene),
+                _ => {}
+            }
+    }
+
+    pub fn update(&mut self, delta_time: f32, scene: &mut Scene) {
+        self.track.update(delta_time, scene);
+    }
+
+    pub fn create_node(&self) -> SceneNode {
+        self.track.create_node()
+    }
+}
+
 fn main() {
     env_logger::init();
 
@@ -63,7 +119,7 @@ fn main() {
             100.0,
         )),
     );
-    
+
     let mut audio = SDLAudioAPI::new();
     audio.play_music("music");
     audio.seek_music(std::time::Duration::from_secs_f32(30.0));
@@ -73,17 +129,13 @@ fn main() {
     camera_transform.set_rotation(&glm::vec3(40f32.to_radians(), std::f32::consts::PI, 0.0));
     scene.set_active_camera("camera");
 
-    let mut track = Track::new("track", 3);
-    for i in 0..1000 {
-        track.add_note(i*16, 0, 1);
-        track.add_note(i*5, i%3, 1);
-    }
+    let mut game = Game::new();
 
     let light_node = create_light();
 
     scene.graph_mut().root_mut().add_child(light_node);
     scene.graph_mut().root_mut().add_child(camera);
-    scene.graph_mut().root_mut().add_child(track.create_node());
+    scene.graph_mut().root_mut().add_child(game.create_node());
 
     let mut scene_renderer = SceneRenderer::new(Box::new(graphics));
 
@@ -103,35 +155,15 @@ fn main() {
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close | WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
-                WindowEvent::KeyDown(Key::A) => track.activate_lane(0, &mut scene),
-                WindowEvent::KeyDown(Key::Z) => track.activate_lane(1, &mut scene),
-                WindowEvent::KeyDown(Key::E) => track.activate_lane(2, &mut scene),
-                WindowEvent::KeyDown(Key::R) => track.activate_lane(3, &mut scene),
-                WindowEvent::KeyDown(Key::T) => track.activate_lane(4, &mut scene),
-                WindowEvent::KeyDown(Key::Y) => track.activate_lane(5, &mut scene),
-                WindowEvent::KeyDown(Key::U) => track.activate_lane(6, &mut scene),
-                WindowEvent::KeyDown(Key::I) => track.activate_lane(7, &mut scene),
-                WindowEvent::KeyDown(Key::O) => track.activate_lane(8, &mut scene),
-                WindowEvent::KeyDown(Key::P) => track.activate_lane(9, &mut scene),
-                WindowEvent::KeyUp(Key::A) => track.deactivate_lane(0, &mut scene),
-                WindowEvent::KeyUp(Key::Z) => track.deactivate_lane(1, &mut scene),
-                WindowEvent::KeyUp(Key::E) => track.deactivate_lane(2, &mut scene),
-                WindowEvent::KeyUp(Key::R) => track.deactivate_lane(3, &mut scene),
-                WindowEvent::KeyUp(Key::T) => track.deactivate_lane(4, &mut scene),
-                WindowEvent::KeyUp(Key::Y) => track.deactivate_lane(5, &mut scene),
-                WindowEvent::KeyUp(Key::U) => track.deactivate_lane(6, &mut scene),
-                WindowEvent::KeyUp(Key::I) => track.deactivate_lane(7, &mut scene),
-                WindowEvent::KeyUp(Key::O) => track.deactivate_lane(8, &mut scene),
-                WindowEvent::KeyUp(Key::P) => track.deactivate_lane(9, &mut scene),
                 WindowEvent::KeyDown(Key::Q) => audio.play_sound("sound"),
                 WindowEvent::KeyDown(Key::S) => {
                     audio.stop_music();
                 },
-                _ => {}
-            }
+                _ => game.handle_input(event, &mut scene, current_time)
+           }
         }
 
-        track.update(timestep, &mut scene);
+        game.update(timestep, &mut scene);
 
         scene_renderer.render_scene(&scene);
         window.display();
