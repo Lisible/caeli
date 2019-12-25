@@ -31,6 +31,9 @@ use tuber::platform::opengl::GLGraphicsAPI;
 use tuber::graphics::scene_renderer::*;
 use tuber::scene::*;
 
+use tuber::audio::AudioAPI;
+use tuber::platform::sdl2::audio::SDLAudioAPI;
+
 use std::time::Instant;
 
 use nalgebra_glm as glm;
@@ -45,9 +48,10 @@ struct Game {
 
 impl Game {
     pub fn new() -> Game {
-        let mut new_track = Track::new("track", 8);
+        let mut new_track = Track::new("track", 3);
         for i in 0..50 {
             new_track.add_note(i * 1000, 0, 1);
+            //new_track.add_note(i*5, i%3, 1);
         }
 
         Game {
@@ -86,6 +90,10 @@ impl Game {
     pub fn update(&mut self, delta_time: f32, scene: &mut Scene) {
         self.track.update(delta_time, scene);
     }
+
+    pub fn create_node(&self) -> SceneNode {
+        self.track.create_node()
+    }
 }
 
 fn main() {
@@ -112,16 +120,14 @@ fn main() {
         )),
     );
 
+    let mut audio = SDLAudioAPI::new();
+    audio.play_music("music");
+    audio.seek_music(std::time::Duration::from_secs_f32(30.0));
+
     let camera_transform = camera.transform_mut();
     camera_transform.set_translation(&glm::vec3(1.5, 1.25, 1.25));
     camera_transform.set_rotation(&glm::vec3(40f32.to_radians(), std::f32::consts::PI, 0.0));
     scene.set_active_camera("camera");
-
-
-    let mut track = Track::new("track", 8);
-    for i in 0..50 {
-        track.add_note(i * 1000, 0, 1);
-    }
 
     let mut game = Game::new();
 
@@ -129,7 +135,7 @@ fn main() {
 
     scene.graph_mut().root_mut().add_child(light_node);
     scene.graph_mut().root_mut().add_child(camera);
-    scene.graph_mut().root_mut().add_child(track.create_node());
+    scene.graph_mut().root_mut().add_child(game.create_node());
 
     let mut scene_renderer = SceneRenderer::new(Box::new(graphics));
 
@@ -138,17 +144,9 @@ fn main() {
 
     let timestep_timer = Instant::now();
     let mut last_frame_time = timestep_timer.elapsed().as_secs_f32();
-    let fps_timer = Instant::now();
-    let mut counted_frames = 0;
 
     'main_loop: loop {
         let cap_timer = Instant::now();
-
-        let mut average_fps = counted_frames as f32 / fps_timer.elapsed().as_secs_f32();
-        if average_fps > 2000000.0 {
-            average_fps = 0.0;
-        }
-        //println!("framerate: {}", average_fps);
 
         let current_time = timestep_timer.elapsed().as_secs_f32();
         let timestep = current_time - last_frame_time;
@@ -157,6 +155,10 @@ fn main() {
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close | WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
+                WindowEvent::KeyDown(Key::Q) => audio.play_sound("sound"),
+                WindowEvent::KeyDown(Key::S) => {
+                    audio.stop_music();
+                },
                 _ => game.handle_input(event, &mut scene, current_time)
            }
         }
@@ -165,8 +167,6 @@ fn main() {
 
         scene_renderer.render_scene(&scene);
         window.display();
-
-        counted_frames += 1;
 
         let frame_ticks = cap_timer.elapsed().as_millis();
         if frame_ticks < TICKS_PER_FRAME as u128 {
