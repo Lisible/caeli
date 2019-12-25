@@ -175,7 +175,6 @@ impl Notes {
     pub fn update(&mut self, delta_time: f32, scene: &mut Scene) {
         self.current_time += delta_time;
 
-        println!("current_time: {}", self.current_time);
         scene.graph_mut().root_mut().find_mut("notes").unwrap().transform_mut().set_translation(&glm::vec3(0.0, -self.current_time, 0.005));
     }
 

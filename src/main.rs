@@ -31,6 +31,9 @@ use tuber::platform::opengl::GLGraphicsAPI;
 use tuber::graphics::scene_renderer::*;
 use tuber::scene::*;
 
+use tuber::audio::AudioAPI;
+use tuber::platform::sdl2::audio::SDLAudioAPI;
+
 use std::time::Instant;
 
 use nalgebra_glm as glm;
@@ -60,16 +63,20 @@ fn main() {
             100.0,
         )),
     );
+    
+    let mut audio = SDLAudioAPI::new();
+    audio.play_music("music");
+    audio.seek_music(std::time::Duration::from_secs_f32(30.0));
 
     let camera_transform = camera.transform_mut();
     camera_transform.set_translation(&glm::vec3(1.5, 1.25, 1.25));
     camera_transform.set_rotation(&glm::vec3(40f32.to_radians(), std::f32::consts::PI, 0.0));
     scene.set_active_camera("camera");
 
-
-    let mut track = Track::new("track", 8);
+    let mut track = Track::new("track", 3);
     for i in 0..1000 {
         track.add_note(i*16, 0, 1);
+        track.add_note(i*5, i%3, 1);
     }
 
     let light_node = create_light();
@@ -85,17 +92,9 @@ fn main() {
 
     let timestep_timer = Instant::now();
     let mut last_frame_time = timestep_timer.elapsed().as_secs_f32();
-    let fps_timer = Instant::now();
-    let mut counted_frames = 0;
 
     'main_loop: loop {
         let cap_timer = Instant::now();
-
-        let mut average_fps = counted_frames as f32 / fps_timer.elapsed().as_secs_f32();
-        if average_fps > 2000000.0 {
-            average_fps = 0.0;
-        }
-        println!("framerate: {}", average_fps);
 
         let current_time = timestep_timer.elapsed().as_secs_f32();
         let timestep = current_time - last_frame_time;
@@ -124,6 +123,10 @@ fn main() {
                 WindowEvent::KeyUp(Key::I) => track.deactivate_lane(7, &mut scene),
                 WindowEvent::KeyUp(Key::O) => track.deactivate_lane(8, &mut scene),
                 WindowEvent::KeyUp(Key::P) => track.deactivate_lane(9, &mut scene),
+                WindowEvent::KeyDown(Key::Q) => audio.play_sound("sound"),
+                WindowEvent::KeyDown(Key::S) => {
+                    audio.stop_music();
+                },
                 _ => {}
             }
         }
@@ -132,8 +135,6 @@ fn main() {
 
         scene_renderer.render_scene(&scene);
         window.display();
-
-        counted_frames += 1;
 
         let frame_ticks = cap_timer.elapsed().as_millis();
         if frame_ticks < TICKS_PER_FRAME as u128 {
