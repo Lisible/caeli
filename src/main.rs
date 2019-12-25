@@ -43,36 +43,38 @@ use caeli::Track;
 struct Game {
     track: Track,
     score: usize,
-    // song ?
+    music_identifier: String
 }
 
 impl Game {
-    pub fn new() -> Game {
+    pub fn new(music_identifier: &str, audio_api: &mut dyn AudioAPI) -> Game {
         let mut new_track = Track::new("track", 3);
         for i in 0..50 {
             new_track.add_note(i * 1000, 0, 1);
-            //new_track.add_note(i*5, i%3, 1);
+            new_track.add_note(i*5, i%3, 1);
         }
 
+        audio_api.play_music(music_identifier);
         Game {
             track: new_track,
             score: 0,
+            music_identifier: music_identifier.into()
         }
     }
 
-    pub fn handle_input(&mut self, event: WindowEvent, scene : &mut Scene, time:f32){
+    pub fn handle_input(&mut self, event: WindowEvent, scene : &mut Scene, audio_api: &mut dyn AudioAPI, time:f32){
             match event {
                 //FIXME(quentin) : ugly stuff, may use some kind of global timer instead of passing this to the function
-                WindowEvent::KeyDown(Key::A) => self.track.activate_lane(0, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::Z) => self.track.activate_lane(1, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::E) => self.track.activate_lane(2, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::R) => self.track.activate_lane(3, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::T) => self.track.activate_lane(4, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::Y) => self.track.activate_lane(5, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::U) => self.track.activate_lane(6, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::I) => self.track.activate_lane(7, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::O) => self.track.activate_lane(8, scene, (time * 1000.0) as usize),
-                WindowEvent::KeyDown(Key::P) => self.track.activate_lane(9, scene, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::A) => self.track.activate_lane(0, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::Z) => self.track.activate_lane(1, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::E) => self.track.activate_lane(2, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::R) => self.track.activate_lane(3, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::T) => self.track.activate_lane(4, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::Y) => self.track.activate_lane(5, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::U) => self.track.activate_lane(6, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::I) => self.track.activate_lane(7, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::O) => self.track.activate_lane(8, scene, audio_api, (time * 1000.0) as usize),
+                WindowEvent::KeyDown(Key::P) => self.track.activate_lane(9, scene, audio_api, (time * 1000.0) as usize),
                 WindowEvent::KeyUp(Key::A) => self.track.deactivate_lane(0, scene),
                 WindowEvent::KeyUp(Key::Z) => self.track.deactivate_lane(1, scene),
                 WindowEvent::KeyUp(Key::E) => self.track.deactivate_lane(2, scene),
@@ -120,16 +122,14 @@ fn main() {
         )),
     );
 
-    let mut audio = SDLAudioAPI::new();
-    audio.play_music("music");
-    audio.seek_music(std::time::Duration::from_secs_f32(30.0));
 
     let camera_transform = camera.transform_mut();
     camera_transform.set_translation(&glm::vec3(1.5, 1.25, 1.25));
     camera_transform.set_rotation(&glm::vec3(40f32.to_radians(), std::f32::consts::PI, 0.0));
     scene.set_active_camera("camera");
 
-    let mut game = Game::new();
+    let mut audio = SDLAudioAPI::new();
+    let mut game = Game::new("music", &mut audio);
 
     let light_node = create_light();
 
@@ -155,11 +155,7 @@ fn main() {
         while let Some(event) = window.poll_event() {
             match event {
                 WindowEvent::Close | WindowEvent::KeyDown(Key::Escape) => break 'main_loop,
-                WindowEvent::KeyDown(Key::Q) => audio.play_sound("sound"),
-                WindowEvent::KeyDown(Key::S) => {
-                    audio.stop_music();
-                },
-                _ => game.handle_input(event, &mut scene, current_time)
+                _ => game.handle_input(event, &mut scene, &mut audio, current_time)
            }
         }
 

@@ -25,6 +25,7 @@
 use nalgebra_glm as glm;
 use tuber::scene::{Scene, SceneNode, NodeValue};
 use tuber::graphics::{Material, Mesh};
+use tuber::audio::AudioAPI;
 
 const DETECTION_BAR_Y: f32 = 1.0;
 
@@ -52,10 +53,10 @@ impl Track {
         self.notes.add_note(milli_second, lane, size);
     }
 
-    pub fn activate_lane(&mut self, lane_number: usize, scene: &mut Scene, milli:usize) {
+    pub fn activate_lane(&mut self, lane_number: usize, scene: &mut Scene, audio_api: &mut dyn AudioAPI, milli:usize) {
         if let Some(lane) = self.lanes.get_mut(lane_number) {
             println!("input time : {}", milli);
-            lane.activate(scene, self.notes.get_note_lane_milli(milli, lane_number));
+            lane.activate(scene, audio_api, self.notes.get_note_lane_milli(milli, lane_number));
         }
     }
 
@@ -133,10 +134,15 @@ impl Lane {
         }
     }
 
-    pub fn activate(&mut self, scene: &mut Scene, note : bool) {
+    pub fn activate(&mut self, scene: &mut Scene, audio_api: &mut dyn AudioAPI, note : bool) {
         let lane_node = scene.graph_mut().root_mut().find_mut(&self.node_identifier).unwrap();
         if let NodeValue::MeshNode(mesh) = lane_node.value_mut() {
-            mesh.material = if note {FOUND_NOTE_LANE_MATERIAL.clone()} else {ACTIVE_LANE_MATERIAL.clone()};
+            if note {
+                mesh.material = FOUND_NOTE_LANE_MATERIAL.clone();
+                audio_api.play_sound("tap");
+            } else {
+                mesh.material = ACTIVE_LANE_MATERIAL.clone();
+            }
         }
 
         self.active = true;
