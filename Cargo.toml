@@ -5,8 +5,4 @@ authors = ["Clément Sibille <clement.sibille@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
-tuber = { git = "https://github.com/tuber-engine/tuber.git", features = ["window", "sdl_window", "graphics", "opengl_graphics", "audio", "sdl_audio", "scene"]}
-gl = "0.11.0"
-env_logger = "0.7.1"
 
-nalgebra-glm = "0.3.0"
